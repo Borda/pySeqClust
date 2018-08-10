@@ -21,10 +21,10 @@ jobs:
           name: Testing
           command: |
             python --version ; pip --version ; pwd ; ls -l
-            coverage run -m py.test sclust -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
+            coverage run -m py.test seqclust -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
             codecov
             coverage report && coverage xml -o test-reports/coverage.xml
-            export CODACY_PROJECT_TOKEN=d6ed8b6a5edb467e9b36359bbefa2eca && python-codacy-coverage -r test-reports/coverage.xml
+            export CODACY_PROJECT_TOKEN=6e89640b906343588b4ef1325c1eeedd && python-codacy-coverage -r test-reports/coverage.xml
 
       - run:
           name: Install this package

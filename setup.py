@@ -16,21 +16,25 @@ from io import open
 
 here = path.abspath(path.dirname(__file__))
 
+with open(path.join(here, 'requirements.txt'), encoding='utf-8') as fp:
+    requirements = [r.rstrip() for r in fp.readlines()]
+
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+with open(path.join(here, 'README.md'), encoding='utf-8') as fp:
+    long_description = fp.read()
 
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
 setup(
-    name='sclust',
+    name='seqclust',
     version='0.1',
     description='dynamic clustering',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/borda/pySClust',
     author='Jiri Borovec',
+    author_email='jiri.borovec@fel.cvut.cz',
     classifiers=[
         # How mature is this project? Common values are
         #   3 - Alpha, 4 - Beta, 5 - Production/Stable
@@ -50,10 +54,11 @@ setup(
     ],
     keywords='dynamic clustering',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['fastdtw', 'scipy'],
+    install_requires=requirements,
+
     entry_points={  # Optional
         'console_scripts': [
-            'sclust=sclust:main',
+            'seqclust=seqclust:main',
         ],
     },
 )
