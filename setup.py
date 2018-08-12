@@ -28,7 +28,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as fp:
 
 setup(
     name='seqclust',
-    version='0.1',
+    version='0.1.0',
     description='dynamic clustering',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -52,13 +52,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    keywords='dynamic clustering',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    keywords='sequences dynamic clustering',
+    packages=find_packages(exclude=['docs', 'tests']),
     install_requires=requirements,
-
-    entry_points={  # Optional
-        'console_scripts': [
-            'seqclust=seqclust:main',
-        ],
-    },
 )

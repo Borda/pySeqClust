@@ -57,10 +57,11 @@ class Clustering(object):
         _check_inputs(sequences, importance)
         self.sequences = sequences
         self.importance = importance
-        self.clusters_ = [[i] for i in range(len(sequences))]
-        self.cluster_pivots_ = list(range(len(sequences)))
         self.labels_ = list(range(len(sequences)))
         self.inter_dist_ = [0] * len(sequences)
+        self.clusters_ = [[i] for i in range(len(sequences))]
+        self.cluster_pivots_ = list(range(len(sequences)))
+        self.cluster_samples_ = []
         self.linked_pairs_ = []
 
     def fit(self, sequences, importance=None):
@@ -73,6 +74,12 @@ class Clustering(object):
         logging.warning('empty abstract Fit() function for %i (%i) sequences'
                         % (len(sequences), len(importance)))
         self._fitted = True
+
+    def predict(self, seq):
+        if not self._fitted:
+            logging.error('clustering is not fitted on any data')
+            return None
+        logging.warning('empty abstract Predict() function')
 
 
 def find_matrix_min(matrix):
@@ -129,6 +136,8 @@ class AgglomerativeClustering(Clustering):
     array([0, 0, 0, 1, 1, 0])
     >>> np.round(clust.inter_dist_, 3)
     array([0.098, 0.1  ])
+    >>> clust.predict(utils.sentence_tokenize('hello how you are'))
+    (0, 0.8)
     """
 
     def __init__(self, fn_affinity, nb_clusters=5, inter_affinity=None):
@@ -182,10 +191,25 @@ class AgglomerativeClustering(Clustering):
             self._update_labels_inter_dist()
 
         logging.info('finish cleaning')
+        self.cluster_samples_ = [self.sequences[i] for i in self.cluster_pivots_]
         self._fitted = True
         del self._mx_dist
         del self.sequences
         del self.importance
+
+    def predict(self, seq):
+        """ compute the assignment to a cluster according smallest distance
+
+        :param [] seq: input sequence
+        :return int, float: label, distance
+        """
+        if not self._fitted:
+            logging.error('clustering is not fitted on any data')
+            return None
+        dists = [self.fn_affinity(seq, seq_p) for seq_p in self.cluster_samples_]
+        d_min = min(dists)
+        lb = np.argmin(dists)
+        return lb, d_min
 
     def _merge_clusters(self, pairs):
         """ merge clusters if given
@@ -215,24 +239,24 @@ class AgglomerativeClustering(Clustering):
         self.labels_ = np.array(self.labels_)
         self.inter_dist_ = np.array(self.inter_dist_)
 
-    def _compute_pivot_inter_dist(self, clust):
+    def _compute_pivot_inter_dist(self, clust_idx):
         """ compute pivot (most representative sample) and inter distance
         for each particular cluster
 
-        :param [int] clust: index of samples in cluster
+        :param [int] clust_idx: index of samples in cluster
         """
         assert hasattr(self, '_mx_dist'), 'missing precomputed distances'
-        clust = np.asarray(clust)
-        mx_inter = self._mx_dist[clust, :][:, clust]
+        clust_idx = np.asarray(clust_idx)
+        mx_inter = self._mx_dist[clust_idx, :][:, clust_idx]
         # remove infs
         mx_inter[np.isinf(mx_inter)] = 0
         # mean inter cluster distance
         idist = np.mean(mx_inter)
         inter = np.sum(mx_inter, axis=0)
         # samples with low importance will increase distance
-        inter /= np.asarray(self.importance)[clust]
+        inter /= np.asarray(self.importance)[clust_idx]
         # take the sample with smallest sum distance
-        piv = clust[np.argmin(inter)]
+        piv = clust_idx[np.argmin(inter)]
         return piv, idist
 
     def _update_cluster_pivots(self):

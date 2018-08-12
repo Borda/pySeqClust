@@ -29,11 +29,11 @@ def norm_ignore_elems(ignored):
     return ignored
 
 
-def elements_distance_binary(b1, b2, ignored=None):
+def elements_distance_binary(elem1, elem2, ignored=None):
     """ affinity measure between two blocks
 
-    :param b1:
-    :param b2:
+    :param elem1: element
+    :param elem2: element
     :return int:
 
     >>> elements_distance_binary('a', 'a')
@@ -44,17 +44,19 @@ def elements_distance_binary(b1, b2, ignored=None):
     0
     """
     ignored = norm_ignore_elems(ignored)
-    if b1 in ignored or b2 in ignored:
+    if elem1 in ignored or elem2 in ignored:
         return 0
-    return int(b1 != b2)
+    return int(elem1 != elem2)
 
 
 def sequence_distance(seq1, seq2, ignored=None,
                       element_dist=elements_distance_binary):
     """ affinity between two layouts
 
-    :param [] l1: sequence layout
-    :param [] l2: sequence layout
+    :param [] seq1: sequence layout
+    :param [] seq2: sequence layout
+    :param [] ignored: list of elements to be ignored
+    :param element_dist: callable function to measure distance
     :return float:
 
     >>> seq1 = ['a', 'b', 'a', 'c']
@@ -101,7 +103,7 @@ def wrap_distance(idx_lt, similar_distance):
 def compute_seq_distances(sequences, affinity=sequence_distance):
     """ compute matrix of all distances
 
-    :param [] layouts:
+    :param [] sequences: list of all sequences
     :return ndarray:
 
     >>> ss = [['a', 'b', 'a', 'c'], ['a', 'a', 'b', 'a'], ['b', None, 'b', 'a']]
@@ -136,7 +138,7 @@ def compute_importance(seq, ignored=None):
     """ compute sequence importance as ration or useful and ignored elements
 
     :param [] seq: input sequence
-    :param [] ignored:
+    :param [] ignored: list of elements to be ignored
     :return float:
 
     >>> compute_importance(['a', 'b', 'c'])

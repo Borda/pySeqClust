@@ -9,3 +9,4 @@ include requirements.txt
 
 # Exclude build configs
 exclude *.yml
+prune notebooks
