@@ -17,7 +17,7 @@ from io import open
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as fp:
-    requirements = [r.rstrip() for r in fp.readlines()]
+    requirements = [r.rstrip() for r in fp.readlines() if not r.startswith('#')]
 
 # Get the long description from the README file
 with open(path.join(here, 'README.md'), encoding='utf-8') as fp:

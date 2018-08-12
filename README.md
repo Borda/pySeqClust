@@ -12,10 +12,10 @@ Sample sequences:
 
 ```
 Hi there, how are you?
-hi where how you are
+hi how you are
 i like to sing
 I am going to sing
-hi where how you are
-hi there how...
+hi where you are
+hi are you there...
 do you sing???
 ```
