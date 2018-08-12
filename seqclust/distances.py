@@ -15,6 +15,20 @@ import seqclust.utilities as utils
 NB_THREADS = max(1, int(mproc.cpu_count() * 0.8))
 
 
+def norm_ignore_elems(ignored):
+    """ normalise element to be ignored, remove duplicates
+
+    :param [] ignored: ignore elements
+    :return []:
+    """
+    if ignored is None:
+        ignored = []
+    elif not isinstance(ignored, list):
+        ignored = [ignored]
+    ignored = set([None] + list(ignored))
+    return ignored
+
+
 def elements_distance_binary(b1, b2, ignored=None):
     """ affinity measure between two blocks
 
@@ -29,12 +43,14 @@ def elements_distance_binary(b1, b2, ignored=None):
     >>> elements_distance_binary('a', None)
     0
     """
-    if b1 == ignored or b2 == ignored:
+    ignored = norm_ignore_elems(ignored)
+    if b1 in ignored or b2 in ignored:
         return 0
     return int(b1 != b2)
 
 
-def sequence_distance(seq1, seq2, ignored=[None], block_dist=elements_distance_binary):
+def sequence_distance(seq1, seq2, ignored=None,
+                      element_dist=elements_distance_binary):
     """ affinity between two layouts
 
     :param [] l1: sequence layout
@@ -44,13 +60,16 @@ def sequence_distance(seq1, seq2, ignored=[None], block_dist=elements_distance_b
     >>> seq1 = ['a', 'b', 'a', 'c']
     >>> sequence_distance(seq1, seq1)
     0.0
-    >>> seq2 = ['a', 'a', 'b', 'a']
+    >>> seq2 = ['a', 'a', 'b', 'a', 'c']
     >>> sequence_distance(seq1, seq2)
+    0.0
+    >>> sequence_distance(seq1, seq2[:len(seq1)])
     0.25
     >>> l3 = ['c', None, 'd']
     >>> sequence_distance(seq1, l3)
     0.5
     """
+    ignored = norm_ignore_elems(ignored)
     # remove None which crash uniques
     seqs = [b for b in seq1 + seq2 if b is not None]
     blocks = [b for b in np.unique(seqs) if b not in ignored]
@@ -60,7 +79,7 @@ def sequence_distance(seq1, seq2, ignored=[None], block_dist=elements_distance_b
 
     # TODO: add also reverse time dynamic t -> (t-1)
     # compute the special distance measure
-    _wrap_dist = partial(block_dist, ignored=-1)
+    _wrap_dist = partial(element_dist, ignored=-1)
     dist, match = fastdtw.dtw(seq1_d, seq2_d, _wrap_dist)
     dist = dist / float(max(len(seq1), len(seq2)))
 
@@ -86,7 +105,7 @@ def compute_seq_distances(sequences, affinity=sequence_distance):
     :return ndarray:
 
     >>> ss = [['a', 'b', 'a', 'c'], ['a', 'a', 'b', 'a'], ['b', None, 'b', 'a']]
-    >>> compute_seq_distances(ss)
+    >>> compute_seq_distances(ss, affinity=sequence_distance)
     array([[0.  , 0.25, 0.5 ],
            [0.25, 0.  , 0.25],
            [0.5 , 0.25, 0.  ]])
@@ -111,3 +130,23 @@ def compute_seq_distances(sequences, affinity=sequence_distance):
     pool.join()
 
     return dists
+
+
+def compute_importance(seq, ignored=None):
+    """ compute sequence importance as ration or useful and ignored elements
+
+    :param [] seq: input sequence
+    :param [] ignored:
+    :return float:
+
+    >>> compute_importance(['a', 'b', 'c'])
+    1.0
+    >>> compute_importance(['a', None, None])  #doctest: +ELLIPSIS
+    0.333...
+    >>> compute_importance([None, None])
+    0.0
+    """
+    ignored = norm_ignore_elems(ignored)
+    bad = [s for s in seq if s in ignored]
+    imp = 1. - (len(bad) / float(len(seq)))
+    return imp

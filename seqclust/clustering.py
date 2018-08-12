@@ -53,7 +53,7 @@ class Clustering(object):
         """
         logging.info('initialize clustering...')
         if importance is None:
-            importance = [1] * len(sequences)
+            importance = [sq_dist.compute_importance(s) for s in sequences]
         _check_inputs(sequences, importance)
         self.sequences = sequences
         self.importance = importance
@@ -61,6 +61,7 @@ class Clustering(object):
         self.cluster_pivots_ = list(range(len(sequences)))
         self.labels_ = list(range(len(sequences)))
         self.inter_dist_ = [0] * len(sequences)
+        self.linked_pairs_ = []
 
     def fit(self, sequences, importance=None):
         """ perform clustering on given sequences
@@ -170,17 +171,15 @@ class AgglomerativeClustering(Clustering):
         logging.info('start agglomerating')
         while self._check_stop_crit():
 
-            d_min, coords = find_matrix_min(mx_dist_iter)
+            _, pairs = find_matrix_min(mx_dist_iter)
 
             # merge clusters
-            for p1, p2 in coords:
-                self.clusters_[p1] += self.clusters_[p2]
-                del self.clusters_[p2]
+            self._merge_clusters(pairs)
 
             self._update_cluster_pivots()
             pivs = np.asarray(self.cluster_pivots_)
             mx_dist_iter = self._mx_dist[pivs, :][:, pivs]
-            self._update_labels_interial()
+            self._update_labels_inter_dist()
 
         logging.info('finish cleaning')
         self._fitted = True
@@ -188,11 +187,24 @@ class AgglomerativeClustering(Clustering):
         del self.sequences
         del self.importance
 
-    def _update_labels_interial(self):
+    def _merge_clusters(self, pairs):
+        """ merge clusters if given
+
+        :param [(int, int)] pairs: cluster pairs for merging
         """
-        update labels for sequences and interiar cluster distance
+        for c1, c2 in pairs:
+            if not self._check_stop_crit():
+                break
+            self.clusters_[c1] += self.clusters_[c2]
+            self.clusters_[c2] = []
+            p1 = self.cluster_pivots_[c1]
+            p2 = self.cluster_pivots_[c2]
+            self.linked_pairs_.append((p1, p2))
+        self.clusters_ = [c for c in self.clusters_ if len(c) > 0]
+
+    def _update_labels_inter_dist(self):
+        """ update labels for sequences and interiar cluster distance
         """
-        assert hasattr(self, '_mx_dist'), 'missing precomputed distances'
         self.inter_dist_ = [0] * len(self.clusters_)
         for idx, clust in enumerate(self.clusters_):
             for i in clust:
@@ -204,13 +216,23 @@ class AgglomerativeClustering(Clustering):
         self.inter_dist_ = np.array(self.inter_dist_)
 
     def _compute_pivot_inter_dist(self, clust):
+        """ compute pivot (most representative sample) and inter distance
+        for each particular cluster
+
+        :param [int] clust: index of samples in cluster
+        """
+        assert hasattr(self, '_mx_dist'), 'missing precomputed distances'
         clust = np.asarray(clust)
         mx_inter = self._mx_dist[clust, :][:, clust]
+        # remove infs
         mx_inter[np.isinf(mx_inter)] = 0
-        inter = np.sum(mx_inter, axis=0)
-        # todo, include importance
-        piv = clust[np.argmin(inter)]
+        # mean inter cluster distance
         idist = np.mean(mx_inter)
+        inter = np.sum(mx_inter, axis=0)
+        # samples with low importance will increase distance
+        inter /= np.asarray(self.importance)[clust]
+        # take the sample with smallest sum distance
+        piv = clust[np.argmin(inter)]
         return piv, idist
 
     def _update_cluster_pivots(self):
@@ -222,7 +244,6 @@ class AgglomerativeClustering(Clustering):
             if len(clust) == 1:
                 piv = clust[0]
             else:
-                assert hasattr(self, '_mx_dist'), 'missing precomputed distances'
                 piv, _ = self._compute_pivot_inter_dist(clust)
             self.cluster_pivots_.append(piv)
         self.cluster_pivots_ = np.array(self.cluster_pivots_)
