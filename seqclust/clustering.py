@@ -45,13 +45,15 @@ class Clustering(object):
         s += '\n {0}({1})'.format(type(self).__name__, str_vars)
         return s
 
-    def _init_fitting(self, sequences, importance):
+    def _init_fitting(self, sequences, importance, verbose=1):
         """ initialise internal parameters with checking come assumptions
 
-        :param [] sequences:
-        :param [] importance:
+        :param [] sequences: list of sequences
+        :param [] importance: importance of particular sample in range (0, 1)
+        :param int verbose: use info (>0) or debug (=0)
         """
-        logging.info('initialize clustering...')
+        log_msg = logging.info if verbose >= 1 else logging.debug
+        log_msg('initialize clustering...')
         if importance is None:
             importance = [sq_dist.compute_importance(s) for s in sequences]
         _check_inputs(sequences, importance)
@@ -64,13 +66,14 @@ class Clustering(object):
         self.cluster_samples_ = []
         self.linked_pairs_ = []
 
-    def fit(self, sequences, importance=None):
+    def fit(self, sequences, importance=None, verbose=1):
         """ perform clustering on given sequences
 
         :param [] sequences: list of sequences
         :param [] importance: importance of particular sample in range (0, 1)
+        :param int verbose: use info (>0) or debug (=0)
         """
-        self._init_fitting(sequences, importance)
+        self._init_fitting(sequences, importance, verbose)
         logging.warning('empty abstract Fit() function for %i (%i) sequences'
                         % (len(sequences), len(importance)))
         self._fitted = True
@@ -119,7 +122,7 @@ class AgglomerativeClustering(Clustering):
     '<....AgglomerativeClustering object at ...>\\n
     AgglomerativeClustering(_fitted=False,
         fn_affinity=<function sequence_distance at ...>,
-        inter_affinity=None, nb_clusters=2)'
+        inter_affinity=None, nb_clusters=2, nb_jobs=1)'
     >>> ss = ['Hi there, how are you?', 'hi how are you', 'hi are you there...',
     ...       'i like to sing', 'I am going to sing', 'hi where you are']
     >>> ss = [utils.sentence_tokenize(s) for s in ss]
@@ -128,7 +131,7 @@ class AgglomerativeClustering(Clustering):
     '<....AgglomerativeClustering object at ...>\\n
     AgglomerativeClustering(_fitted=True,
         fn_affinity=<function sequence_distance at ...>,
-        inter_affinity=None, nb_clusters=2)'
+        inter_affinity=None, nb_clusters=2, nb_jobs=1)'
     >>> np.array(ss)[clust.cluster_pivots_]
     array([list(['hi', 'there', 'how', 'are', 'you']),
            list(['i', 'like', 'to', 'sing'])], dtype=object)
@@ -140,16 +143,22 @@ class AgglomerativeClustering(Clustering):
     (0, 0.8)
     """
 
-    def __init__(self, fn_affinity, nb_clusters=5, inter_affinity=None):
+    def __init__(self, fn_affinity, nb_clusters=5, inter_affinity=None,
+                 nb_jobs=1):
         """ initialise the clustering with parameters
 
-        :param func fn_affinity:
-        :param int nb_clusters:
-        :param float inter_affinity:
+        :param func|str fn_affinity: function comparing sequences
+        :param int|None nb_clusters: number of clusters
+        :param float|None inter_affinity: dissimilarity inside clusters
+        :param int nb_jobs:
         """
-        self.nb_clusters = nb_clusters
+        if nb_clusters is not None and nb_clusters > 0:
+            self.nb_clusters = nb_clusters
+        else:
+            self.nb_clusters = 1
         self.fn_affinity = fn_affinity
         self.inter_affinity = inter_affinity
+        self.nb_jobs = nb_jobs
         super(AgglomerativeClustering, self).__init__()
 
     def _check_stop_crit(self):
@@ -162,14 +171,17 @@ class AgglomerativeClustering(Clustering):
             if self.inter_affinity is not None else True
         return b_nb and b_dist
 
-    def fit(self, sequences, importance=None):
+    def fit(self, sequences, importance=None, verbose=1):
         """ perform clustering on given sequences
 
         :param [] sequences: list of sequences
         :param [] importance: importance of particular sample in range (0, 1)
+        :param int verbose: use info (>0) or debug (=0)
         """
-        self._init_fitting(sequences, importance)
-        logging.info('compute precomputed distances')
+        log_msg = logging.info if verbose >= 1 else logging.debug
+
+        self._init_fitting(sequences, importance, verbose)
+        log_msg('compute precomputed distances')
         self._mx_dist = sq_dist.compute_seq_distances(self.sequences,
                                                       self.fn_affinity)
         # set inf to distances to itself
@@ -177,7 +189,7 @@ class AgglomerativeClustering(Clustering):
             self._mx_dist[i, i] = np.Inf
         mx_dist_iter = self._mx_dist.copy()
 
-        logging.info('start agglomerating')
+        log_msg('start agglomerating')
         while self._check_stop_crit():
 
             _, pairs = find_matrix_min(mx_dist_iter)
@@ -190,7 +202,7 @@ class AgglomerativeClustering(Clustering):
             mx_dist_iter = self._mx_dist[pivs, :][:, pivs]
             self._update_labels_inter_dist()
 
-        logging.info('finish cleaning')
+            log_msg('finish cleaning')
         self.cluster_samples_ = [self.sequences[i] for i in self.cluster_pivots_]
         self._fitted = True
         del self._mx_dist

@@ -100,10 +100,13 @@ def wrap_distance(idx_lt, similar_distance):
     return idx, d
 
 
-def compute_seq_distances(sequences, affinity=sequence_distance):
+def compute_seq_distances(sequences, affinity=sequence_distance,
+                          nb_jobs=NB_THREADS):
     """ compute matrix of all distances
 
     :param [] sequences: list of all sequences
+    :param func affinity: function specify the sample affinity
+    :param int nb_jobs: number jobs running in parallel
     :return ndarray:
 
     >>> ss = [['a', 'b', 'a', 'c'], ['a', 'a', 'b', 'a'], ['b', None, 'b', 'a']]
@@ -119,12 +122,13 @@ def compute_seq_distances(sequences, affinity=sequence_distance):
            [0.2, 0. , 0.5],
            [0.6, 0.5, 0. ]])
     """
-    idxs = [(i, j) for i in range(len(sequences)) for j in range(i, len(sequences))]
+    idxs = [(i, j) for i in range(len(sequences))
+            for j in range(i, len(sequences))]
     idx_lt = (((i, j), (sequences[i], sequences[j])) for i, j in idxs)
     dists = np.zeros((len(sequences), len(sequences)))
 
     _wrap_dist = partial(wrap_distance, similar_distance=affinity)
-    pool = utils.NDPool(NB_THREADS)
+    pool = utils.NDPool(nb_jobs)
     for idx, d in pool.imap_unordered(_wrap_dist, idx_lt):
         dists[idx[0], idx[1]] = d
         dists[idx[1], idx[0]] = d
