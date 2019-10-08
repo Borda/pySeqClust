@@ -9,7 +9,7 @@ from functools import partial
 import numpy as np
 import fastdtw
 
-import seqclust.utilities as utils
+from pathos.multiprocessing import ProcessPool
 
 
 NB_THREADS = max(1, int(mproc.cpu_count() * 0.8))
@@ -128,13 +128,15 @@ def compute_seq_distances(sequences, affinity=sequence_distance,
     dists = np.zeros((len(sequences), len(sequences)))
 
     _wrap_dist = partial(wrap_distance, similar_distance=affinity)
-    pool = utils.NDPool(nb_jobs)
-    for idx, d in pool.imap_unordered(_wrap_dist, idx_lt):
+    pool = ProcessPool(nb_jobs)
+
+    for idx, d in pool.imap(_wrap_dist, idx_lt):
         dists[idx[0], idx[1]] = d
         dists[idx[1], idx[0]] = d
+
     pool.close()
     pool.join()
-
+    pool.clear()
     return dists
 
 

@@ -10,7 +10,7 @@ jobs:
           name: Install Packages
           command: |
             sudo apt-get update --fix-missing
-            sudo apt-get install tk-dev pkg-config python-dev python-tk
+            sudo apt-get install pkg-config python-dev
       - run:
           name: Install PyPI dependences
           command: |
@@ -20,16 +20,17 @@ jobs:
       - run:
           name: Testing
           command: |
-            python --version ; pip --version ; pwd ; ls -l
+            python --version ; pip --version ; pwd ; ls -l ; pip list
             coverage run -m py.test seqclust -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
-            codecov
-            coverage report && coverage xml -o test-reports/coverage.xml
+            coverage report
+            coverage xml -o test-reports/coverage.xml
             export CODACY_PROJECT_TOKEN=6e89640b906343588b4ef1325c1eeedd && python-codacy-coverage -r test-reports/coverage.xml
+            codecov
 
       - run:
           name: Install this package
           command: |
-            python setup.py install --user
+            python setup.py install --user --dry-run
 
       - store_test_results:
           path: test-reports

@@ -5,28 +5,26 @@ General utilities
 
 
 import os
-import multiprocessing.pool
-import multiprocessing as mproc
 
 
-class NoDaemonProcess(mproc.Process):
-    # make 'daemon' attribute always return False
-    def _get_daemon(self):
-        return False
+# class NoDaemonProcess(mproc.Process):
+#     # make 'daemon' attribute always return False
+#     def _get_daemon(self):
+#         return False
+#
+#     def _set_daemon(self, value):
+#         pass
+#
+#     daemon = property(_get_daemon, _set_daemon)
 
-    def _set_daemon(self, value):
-        pass
 
-    daemon = property(_get_daemon, _set_daemon)
-
-
-class NDPool(multiprocessing.pool.Pool):
-    """ We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
-    because the latter is only a wrapper function, not a proper class.
-
-    >>> pool = NDPool(1)
-    """
-    Process = NoDaemonProcess
+# class NDPool(multiprocessing.pool.Pool):
+#     """ We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+#     because the latter is only a wrapper function, not a proper class.
+#
+#     >>> pool = NDPool(1)
+#     """
+#     Process = NoDaemonProcess
 
 
 def update_path(path_file, lim_depth=5, absolute=True):
