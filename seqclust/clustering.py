@@ -1,14 +1,15 @@
 """
 Module with clustering functions
 
+Copyright (C) 2017-2018 Jiri Borovec
 """
+from __future__ import absolute_import
 
 import logging
 
 import numpy as np
 
-import seqclust.distances as sq_dist
-import seqclust.utilities as utils
+from .distances import compute_importance, compute_seq_distances
 
 
 def _check_inputs(sequences, importance=None):
@@ -55,7 +56,7 @@ class Clustering(object):
         log_msg = logging.info if verbose >= 1 else logging.debug
         log_msg('initialize clustering...')
         if importance is None:
-            importance = [sq_dist.compute_importance(s) for s in sequences]
+            importance = [compute_importance(s) for s in sequences]
         _check_inputs(sequences, importance)
         self.sequences = sequences
         self.importance = importance
@@ -116,8 +117,10 @@ def find_matrix_min(matrix):
 class AgglomerativeClustering(Clustering):
     """ Agglomerative clustering
 
+    >>> from seqclust.distances import sequence_distance
+    >>> from seqclust.utilities import sentence_tokenize
     >>> clust = AgglomerativeClustering(nb_clusters=2,
-    ...                                 fn_affinity=sq_dist.sequence_distance)
+    ...                                 fn_affinity=sequence_distance)
     >>> repr(clust)  #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<....AgglomerativeClustering object at ...>\\n
     AgglomerativeClustering(_fitted=False,
@@ -125,7 +128,7 @@ class AgglomerativeClustering(Clustering):
         inter_affinity=None, nb_clusters=2, nb_jobs=1)'
     >>> ss = ['Hi there, how are you?', 'hi how are you', 'hi are you there...',
     ...       'i like to sing', 'I am going to sing', 'hi where you are']
-    >>> ss = [utils.sentence_tokenize(s) for s in ss]
+    >>> ss = [sentence_tokenize(s) for s in ss]
     >>> clust.fit(ss)
     >>> repr(clust)  #doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
     '<....AgglomerativeClustering object at ...>\\n
@@ -139,7 +142,7 @@ class AgglomerativeClustering(Clustering):
     array([0, 0, 0, 1, 1, 0])
     >>> np.round(clust.inter_dist_, 3)
     array([0.098, 0.1  ])
-    >>> clust.predict(utils.sentence_tokenize('hello how you are'))
+    >>> clust.predict(sentence_tokenize('hello how you are'))
     (0, 0.8)
     """
 
@@ -182,8 +185,7 @@ class AgglomerativeClustering(Clustering):
 
         self._init_fitting(sequences, importance, verbose)
         log_msg('compute precomputed distances')
-        self._mx_dist = sq_dist.compute_seq_distances(self.sequences,
-                                                      self.fn_affinity)
+        self._mx_dist = compute_seq_distances(self.sequences, self.fn_affinity)
         # set inf to distances to itself
         for i in range(len(self._mx_dist)):
             self._mx_dist[i, i] = np.Inf

@@ -1,8 +1,8 @@
 """
 General utilities
 
+Copyright (C) 2017-2018 Jiri Borovec
 """
-
 
 import os
 

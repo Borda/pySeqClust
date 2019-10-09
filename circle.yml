@@ -21,7 +21,7 @@ jobs:
           name: Testing
           command: |
             python --version ; pip --version ; pwd ; ls -l ; pip list
-            coverage run -m py.test seqclust -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
+            coverage run --source seqclust -m py.test seqclust -v --doctest-modules --junitxml=test-reports/pytest_junit.xml
             coverage report
             coverage xml -o test-reports/coverage.xml
             export CODACY_PROJECT_TOKEN=6e89640b906343588b4ef1325c1eeedd && python-codacy-coverage -r test-reports/coverage.xml

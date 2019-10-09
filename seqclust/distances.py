@@ -1,6 +1,7 @@
 """
 Module for computing distances
 
+Copyright (C) 2017-2018 Jiri Borovec
 """
 
 import multiprocessing as mproc
@@ -8,7 +9,6 @@ from functools import partial
 
 import numpy as np
 import fastdtw
-
 from pathos.multiprocessing import ProcessPool
 
 
